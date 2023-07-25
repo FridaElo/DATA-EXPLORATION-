@@ -1,0 +1,59 @@
+SELECT  location, total_cases, total_deaths, date, (total_deaths/total_cases)*100 as Percentage_of_death
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where location like 'Mexico'
+order by 1, 4;
+-- it shows what was the percentage of people that died of covid out of all the people that were in contact with the virus in Mexico from-to
+
+
+select location,date ,population , total_cases, (total_cases/population)*100 as percentage_of_c
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where location like 'Mexico' 
+order by 2;
+--shows the percentage of people within mexico that contracted the virus COVID-19
+
+
+select location, population, max(total_cases) as peak_infection, max((total_cases/population))*100 as percentage_of_infected
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where continent is not null
+group by location, population
+order by 4 desc;
+
+-- A comparation between the highest infection count rate of each country in contrast with the population
+
+select location, max(total_deaths) as count_deaths
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where continent is not null
+group by location
+order by 2 desc;
+
+--A look into the countries with the highest deaths count
+
+select continent, max(total_deaths) as count_deaths
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where continent is not null
+group by continent
+order by 2 desc;
+
+--death count by continent 
+
+SELECT  date, sum(new_cases) as CASES_N, sum(new_deaths) as DEATHS_N, 
+case when sum(new_cases) <> 0 then (sum(new_deaths)/sum(new_cases))*100 
+else null
+end as Global_Percentage_of_death
+FROM `corded-essence-389317.COVID_DATA.DATA_CASES`
+where continent is not null
+group by date
+order by 1 ;
+
+-- daily percentage of death globally for new cases 
+
+WITH POPvsVAC AS
+(Select CASES.location, CASES.continent, CASES.date, CASES.population, VAC.new_vaccinations, SUM(VAC.new_vaccinations) over (partition by CASES.location order by CASES.location, CASES.date) as sum_of_v 
+from `corded-essence-389317.COVID_DATA.DATA_CASES` as CASES
+join `corded-essence-389317.COVID_DATA.VACC` AS VAC
+ON CASES.location = VAC.location
+and CASES.date = VAC.date
+where CASES.continent is not null)
+select *, (sum_of_v/population)*100 as per_of_v_people from POPvsVAC
+
+-- The total amoun of people that got vaccinated across the globe
