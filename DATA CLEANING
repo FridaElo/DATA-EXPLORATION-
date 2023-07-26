@@ -1,0 +1,87 @@
+--SPLIT PROPERTY ADDRESS TO ADDRESS AND CITY
+
+SELECT SPLIT(PropertyAddress, ',') [safe_ordinal(1)] as address,
+ SPLIT(PropertyAddress, ',') [safe_ordinal(2)] as city
+ FROM `corded-essence-389317.HOUSING.NASHVILLE`;
+
+ALTER TABLE `corded-essence-389317.HOUSING.NASHVILLE`
+add column  Address_spli string; 
+
+Update `corded-essence-389317.HOUSING.NASHVILLE`
+set Address_spli = SPLIT(PropertyAddress, ',') [safe_ordinal(1)]
+where PropertyAddress is not null;
+
+ALTER TABLE `corded-essence-389317.HOUSING.NASHVILLE`
+add column  Address_split_city string; 
+
+
+Update `corded-essence-389317.HOUSING.NASHVILLE`
+set Address_split_city = SPLIT(PropertyAddress, ',') [safe_ordinal(2)]
+where PropertyAddress is not null;
+
+
+select * from `corded-essence-389317.HOUSING.NASHVILLE`;
+
+
+
+--CHANGE 'Y' TO YES ANDX 'N' TO NO IN THE TABLE
+
+select distinct SoldAsVacant, count(SoldAsVacant)
+from `corded-essence-389317.HOUSING.NASHVILLE`
+group by SoldAsVacant;
+
+SELECT SoldAsVacant, 
+case when SoldAsVacant = 'Y' then 'Yes' 
+when SoldAsVacant = 'N' then 'No'
+else SoldasVacant
+end as Clean_soldasvacant
+from `corded-essence-389317.HOUSING.NASHVILLE`;
+
+UPDATE `corded-essence-389317.HOUSING.NASHVILLE`
+set SoldAsVacant = case when SoldAsVacant = 'Y' then 'Yes' 
+when SoldAsVacant = 'N' then 'No' 
+when SoldAsVacant = 'Yes' then 'Yes'
+when SoldAsVacant = 'No' then 'No' else null end
+where SoldAsVacant is not null;
+
+--remove duplicates
+create table corded-essence-389317.HOUSING.find_duplicate AS 
+(
+  select *, row_number () over (partition by ParcelID, PropertyAddress, SalePrice, SaleDate, LegalReference
+order by UniqueID_) number_r
+from `corded-essence-389317.HOUSING.NASHVILLE`
+);
+
+delete from `corded-essence-389317.HOUSING.NASHVILLE` 
+where exists (select * from `corded-essence-389317.HOUSING.find_duplicate` b
+where b.number_r > 1);
+
+--Created a table with a column designated count the number of row partitioned by different attributes so I could get the duplicates, then used the delete funcion with a join to the duplicates so it would delete the rows that have the same values more than once
+
+with try_1 as
+ (
+ select *, row_number () over (partition by ParcelID, PropertyAddress, SalePrice, SaleDate, LegalReference
+order by UniqueID_) number_r
+from `corded-essence-389317.HOUSING.NASHVILLE`
+)
+
+select * from try_1
+where number_r > 1;
+
+
+-- used a cte to check if there were duplicates, there were not
+--now I can delete the table with the duplicates
+
+drop table `corded-essence-389317.HOUSING.find_duplicate`;
+
+-- Change date to data type date
+
+SELECT SaleDate, SAFE_CAST(SaleDate AS date)  
+from `corded-essence-389317.HOUSING.NASHVILLE` ;
+
+Alter table `corded-essence-389317.HOUSING.NASHVILLE`
+ADD COLUMN date_of_sale date;
+
+UPDATE `corded-essence-389317.HOUSING.NASHVILLE`
+set date_of_sale = SAFE_CAST(SaleDate AS date)
+where SaleDate is not null;
